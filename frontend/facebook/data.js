@@ -498,35 +498,58 @@
     
     try {
       const raw = await apiFetch("/api/accounts");
-      const accounts = [];
-      // Only id/name/username come from the API. Follower/post/engagement
-      // metrics are not exposed by the backend, so they are left null instead
-      // of being fabricated.
-      raw.forEach((p) => {
-        accounts.push({
+      const accountsPromises = raw.map(async (p) => {
+        let fanCount = null;
+        let pagePic = null;
+        try {
+          const meta = await apiFetch(`/api/page/metadata?page_id=${p.page_id}`);
+          fanCount = meta.fan_count || null;
+          pagePic = meta.picture?.data?.url || null;
+        } catch (err) {
+          console.error("Failed to fetch page metadata for " + p.page_id, err);
+        }
+
+        const items = [];
+        items.push({
           id: p.page_id,
           name: p.page_name,
           platform: "facebook",
           username: "",
-          followers: null,
+          followers: fanCount,
           posts: null,
           engagement: null,
+          avatar: pagePic,
           ig_business_account_id: null
         });
+
         if (p.ig_business_account_id) {
-          accounts.push({
+          let igFollowers = null;
+          let igPic = null;
+          try {
+            const igMeta = await apiFetch(`/api/instagram/metadata?account_id=${p.ig_business_account_id}`);
+            igFollowers = igMeta.followers_count ?? null;
+            igPic = igMeta.profile_picture_url ?? null;
+          } catch (err) {
+            console.error("Failed to fetch IG metadata for " + p.ig_business_account_id, err);
+          }
+
+          items.push({
             id: p.ig_business_account_id,
             name: p.page_name + " Instagram",
             platform: "instagram",
             username: p.ig_username || "",
-            followers: null,
+            followers: igFollowers,
             posts: null,
             engagement: null,
+            avatar: igPic || pagePic,
             ig_business_account_id: p.ig_business_account_id
           });
         }
+        return items;
       });
-      return accounts;
+
+      const results = await Promise.all(accountsPromises);
+      return results.flat();
     } catch (e) {
       console.error(e);
       return [];
@@ -652,10 +675,23 @@
       const raw = await apiFetch("/api/accounts");
       const fbCount = raw.length;
       const igCount = raw.filter((a) => a.ig_business_account_id).length;
+      
+      let totalIgFollowers = 0;
+      for (const p of raw) {
+        if (p.ig_business_account_id) {
+          try {
+            const igMeta = await apiFetch(`/api/instagram/metadata?account_id=${p.ig_business_account_id}`);
+            totalIgFollowers += igMeta.followers_count || 0;
+          } catch (err) {
+            console.error("Failed to fetch IG follower count for " + p.ig_business_account_id, err);
+          }
+        }
+      }
+
       return {
         mentions: { value: igCount + fbCount, delta: "Connected Accounts" },
         engagement: { value: igCount, delta: "Instagram Profiles" },
-        followers: { value: fbCount, delta: "Facebook Pages" },
+        followers: { value: formatCount(totalIgFollowers), delta: "Instagram Followers" },
         reach: { value: "Synced", delta: "Just now" }
       };
     } catch (e) {
@@ -754,6 +790,29 @@
     });
   }
 
+  async function getPagePosts() {
+    const cfg = window.WOUCHH_CONFIG || {};
+    const hasFb = cfg.FB_APP_ID && !String(cfg.FB_APP_ID).startsWith("REPLACE_");
+    if (!hasFb) return [];
+
+    try {
+      const raw = await apiFetch("/api/accounts");
+      const promises = raw.map(async (p) => {
+        try {
+          return await apiFetch(`/api/page/posts?page_id=${p.page_id}`);
+        } catch (err) {
+          console.error("Failed to fetch page posts for " + p.page_id, err);
+          return [];
+        }
+      });
+      const results = await Promise.all(promises);
+      return results.flat();
+    } catch (e) {
+      console.error(e);
+      return [];
+    }
+  }
+
   // Dashboard "Recent Activity" — composed from real comments + mentions when
   // logged in (the backend has no dedicated activity feed endpoint).
   async function getActivity() {
@@ -762,7 +821,11 @@
     if (!hasFb) return RECENT_ACTIVITY;
 
     try {
-      const [comments, mentions] = await Promise.all([getComments(), getMentions()]);
+      const [comments, mentions, posts] = await Promise.all([
+        getComments(),
+        getMentions(),
+        getPagePosts()
+      ]);
       const items = [];
       comments.forEach((c) =>
         items.push({
@@ -780,6 +843,17 @@
           ts: m.time || 0,
         })
       );
+      posts.forEach((p) => {
+        const timeInSeconds = p.created_time
+          ? Math.floor(new Date(p.created_time).getTime() / 1000)
+          : (Date.now() / 1000);
+        items.push({
+          name: "Page Post",
+          avatar: "/assets/logo-square.png",
+          activity: "Published: " + String(p.message || "Photo/Video Post").slice(0, 80),
+          ts: timeInSeconds,
+        });
+      });
       items.sort((a, b) => b.ts - a.ts);
       return items.slice(0, 8).map((i) => ({
         name: i.name,
@@ -789,6 +863,19 @@
       }));
     } catch (e) {
       console.error(e);
+      return [];
+    }
+  }
+
+  async function getWebhookEvents() {
+    const cfg = window.WOUCHH_CONFIG || {};
+    const hasFb = cfg.FB_APP_ID && !String(cfg.FB_APP_ID).startsWith("REPLACE_");
+    if (!hasFb) return [];
+
+    try {
+      return await apiFetch("/api/webhook-events");
+    } catch (e) {
+      console.error("Failed to fetch webhook events", e);
       return [];
     }
   }
@@ -811,5 +898,7 @@
     getAccounts,
     relativeTime,
     formatCount,
+    getWebhookEvents,
+    getPagePosts,
   };
 })();

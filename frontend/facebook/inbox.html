@@ -252,6 +252,34 @@
           activeConversationId = first ? first.id : "";
         }
         syncResponsiveState();
+
+        let lastEventTime = null;
+
+        async function pollWebhooks() {
+          try {
+            const events = await FBData.getWebhookEvents();
+            if (events && events.length > 0) {
+              const latest = events[events.length - 1];
+              if (!lastEventTime) {
+                lastEventTime = latest.receivedAt;
+              } else if (latest.receivedAt > lastEventTime) {
+                console.log("[inbox] New webhook event detected:", latest);
+                lastEventTime = latest.receivedAt;
+                
+                const updatedConvos = await FBData.getConversations();
+                convos.length = 0;
+                convos.push(...updatedConvos);
+                
+                renderList();
+                renderThread();
+              }
+            }
+          } catch (e) {
+            console.error("Error polling webhooks:", e);
+          }
+        }
+
+        setInterval(pollWebhooks, 3000);
       })();
     </script>
   </body>

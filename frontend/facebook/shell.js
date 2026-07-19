@@ -4,7 +4,16 @@
 
   const SESSION_KEY = "sl_fb_session";
   const STATE_KEY = "fb_login_state";
-  const DEFAULT_BACKEND = "https://sociallift-backend-production.up.railway.app";
+  const DEFAULT_BACKEND = (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname.endsWith(".ngrok-free.dev") ||
+    window.location.hostname.endsWith(".ngrok.io")
+  )
+    ? (window.location.port === "8080" || window.location.hostname.includes("ngrok")
+        ? window.location.origin
+        : "http://localhost:8080")
+    : "https://sociallift-backend-production.up.railway.app";
   const MOBILE_QUERY = "(max-width: 1023px)";
 
   const ASSETS = {

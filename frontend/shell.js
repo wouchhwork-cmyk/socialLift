@@ -36,9 +36,7 @@
       ["/mentions.html",  "Mentions",   icons.mentions],
       ["/comments.html",  "Comments",   icons.comments],
       ["/inbox.html",     "Inbox",      icons.inbox],
-      ["/posts.html",     "Content",    icons.posts],
       ["/compose.html",   "Compose",    icons.compose],
-      ["/analytics.html", "Analytics",  icons.analytics],
       ["/settings.html",  "Settings",   icons.settings],
     ];
 

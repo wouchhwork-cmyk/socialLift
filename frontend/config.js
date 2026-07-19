@@ -5,8 +5,16 @@ window.WOUCHH_CONFIG = {
 
   /* ---------- Facebook / Meta ---------- */
   FB_APP_ID: "1174274799094721",
-  // Deployed build: always call the production backend on Railway.
-  BACKEND_BASE_URL: "https://sociallift-backend-production.up.railway.app",
+  BACKEND_BASE_URL: (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname.endsWith(".ngrok-free.dev") ||
+    window.location.hostname.endsWith(".ngrok.io")
+  )
+    ? (window.location.port === "8080" || window.location.hostname.includes("ngrok")
+        ? window.location.origin
+        : "http://localhost:8080")
+    : "https://sociallift-backend-production.up.railway.app",
   GRAPH_API_VERSION: "v25.0",
   FB_SCOPES: [
     "public_profile",

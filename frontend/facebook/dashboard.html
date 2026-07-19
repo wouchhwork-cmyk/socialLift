@@ -105,9 +105,9 @@
         const metrics = await FBData.getMetrics();
         const metricGrid = document.getElementById("metrics");
         [
-          { label: "Connected accounts", value: metrics.engagement.value },
+          { label: "Connected accounts", value: metrics.mentions.value },
           { label: "Instagram profiles", value: metrics.engagement.value, spark: FBUi.SPARK_ORANGE, stroke: "#a73a00" },
-          { label: "Sync status", value: metrics.reach.value },
+          { label: "Instagram Followers", value: metrics.followers.value },
         ].forEach((metric) => metricGrid.appendChild(FBUi.metricCard(metric)));
 
         const platformsEl = document.getElementById("platforms");
@@ -149,6 +149,55 @@
             '<td class="px-4 py-4 text-sm text-on-surface-variant sm:px-6">' + activity.time + "</td>";
           activityRows.appendChild(row);
         });
+
+        let lastEventTime = null;
+
+        async function pollWebhooks() {
+          try {
+            const events = await FBData.getWebhookEvents();
+            if (events && events.length > 0) {
+              const latest = events[events.length - 1];
+              if (!lastEventTime) {
+                lastEventTime = latest.receivedAt;
+              } else if (latest.receivedAt > lastEventTime) {
+                console.log("[dashboard] New webhook event detected:", latest);
+                lastEventTime = latest.receivedAt;
+
+                const updatedActivities = await FBData.getActivity();
+                activityRows.innerHTML = "";
+                updatedActivities.forEach((activity) => {
+                  const row = document.createElement("tr");
+                  row.className = "border-t border-outline-variant/10";
+                  row.innerHTML =
+                    '<td class="px-4 py-4 sm:px-6">' +
+                      '<div class="flex items-center gap-3">' +
+                        (activity.avatar
+                          ? '<img src="' + activity.avatar + '" alt="" class="h-10 w-10 rounded-full border border-outline-variant/10 object-cover">'
+                          : '<div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">' + activity.initials + "</div>") +
+                        '<span class="font-semibold text-on-surface">' + activity.name + "</span>" +
+                      '</div>' +
+                    '</td>' +
+                    '<td class="px-4 py-4 text-sm text-on-surface-variant sm:px-6">' + activity.activity + '</td>' +
+                    '<td class="px-4 py-4 text-sm text-on-surface-variant sm:px-6">' + activity.time + '</td>';
+                  activityRows.appendChild(row);
+                });
+
+                const updatedMetrics = await FBData.getMetrics();
+                const metricGrid = document.getElementById("metrics");
+                metricGrid.innerHTML = "";
+                [
+                  { label: "Connected accounts", value: updatedMetrics.mentions.value },
+                  { label: "Instagram profiles", value: updatedMetrics.engagement.value, spark: FBUi.SPARK_ORANGE, stroke: "#a73a00" },
+                  { label: "Instagram Followers", value: updatedMetrics.followers.value },
+                ].forEach((metric) => metricGrid.appendChild(FBUi.metricCard(metric)));
+              }
+            }
+          } catch (e) {
+            console.error("Error polling webhooks:", e);
+          }
+        }
+
+        setInterval(pollWebhooks, 3000);
       })();
     </script>
   </body>

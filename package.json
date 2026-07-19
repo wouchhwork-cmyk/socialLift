@@ -2,11 +2,8 @@
   "name": "wouchh-root",
   "version": "1.0.0",
   "private": true,
-  "workspaces": [
-    "backend"
-  ],
   "scripts": {
-    "start": "npm start --workspace=backend",
-    "dev": "npm run dev --workspace=backend"
+    "start": "npm start --prefix ../socialLift-backend",
+    "dev": "npm run dev --prefix ../socialLift-backend"
   }
 }
