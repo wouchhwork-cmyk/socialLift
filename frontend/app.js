@@ -36,7 +36,7 @@
         },
       });
     } else {
-      const backendBaseUrl = cfg.BACKEND_BASE_URL || "https://sociallift-backend-production.up.railway.app";
+      const backendBaseUrl = cfg.BACKEND_BASE_URL || "https://sociallift-backend.netlify.app";
       window.location.href = backendBaseUrl + "/auth/facebook/login";
     }
   }

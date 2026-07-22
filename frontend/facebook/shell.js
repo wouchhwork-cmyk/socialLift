@@ -13,7 +13,7 @@
     ? (window.location.port === "8080" || window.location.hostname.includes("ngrok")
         ? window.location.origin
         : "http://localhost:8080")
-    : "https://sociallift-backend-production.up.railway.app";
+    : "https://sociallift-backend.netlify.app";
   const MOBILE_QUERY = "(max-width: 1023px)";
 
   const ASSETS = {

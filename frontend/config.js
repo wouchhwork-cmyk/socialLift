@@ -14,7 +14,7 @@ window.WOUCHH_CONFIG = {
     ? (window.location.port === "8080" || window.location.hostname.includes("ngrok")
         ? window.location.origin
         : "http://localhost:8080")
-    : "https://sociallift-backend-production.up.railway.app",
+    : "https://sociallift-backend.netlify.app",
   GRAPH_API_VERSION: "v25.0",
   FB_SCOPES: [
     "public_profile",
