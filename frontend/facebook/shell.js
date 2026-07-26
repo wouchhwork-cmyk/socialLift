@@ -441,6 +441,22 @@
     async function pollSession() {
       if (done) return;
       try {
+        if (popup && !popup.closed) {
+          const popupUrl = new URL(popup.location.href);
+          if (popupUrl.origin === window.location.origin) {
+            const token = popupUrl.searchParams.get("state");
+            if (token) {
+              sessionStorage.setItem(STATE_KEY, token);
+              finish(true);
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        // cross-origin security block (popup is still on Meta page)
+      }
+
+      try {
         const res = await fetch(apiUrl("me"));
         if (res.ok) finish(true);
         // 401 → session not created yet; keep waiting.
