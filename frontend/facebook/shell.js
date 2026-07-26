@@ -73,8 +73,17 @@
     return id;
   }
 
-  // Read the current login state UUID (null if there is no active login).
+  // Read the current login state UUID or token (null if there is no active login).
+  // Checks URL search parameters first to capture state transfers on redirect.
   function getState() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const urlState = params.get("state");
+      if (urlState) {
+        sessionStorage.setItem(STATE_KEY, urlState);
+        return urlState;
+      }
+    } catch (e) {}
     return sessionStorage.getItem(STATE_KEY);
   }
 
