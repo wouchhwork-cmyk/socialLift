@@ -406,6 +406,14 @@
       done = true;
       clearInterval(timer);
       window.removeEventListener("storage", onStorage);
+      if (success) {
+        try {
+          const result = JSON.parse(localStorage.getItem(AUTH_RESULT_KEY));
+          if (result && result.state) {
+            sessionStorage.setItem(STATE_KEY, result.state);
+          }
+        } catch (e) {}
+      }
       try { localStorage.removeItem(AUTH_RESULT_KEY); } catch (e) {}
       try { if (popup && !popup.closed) popup.close(); } catch (e) {}
       hideAuthOverlay();
@@ -436,7 +444,17 @@
     // localStorage, firing a `storage` event here — poll immediately instead of
     // waiting for the next tick.
     function onStorage(ev) {
-      if (ev.key === AUTH_RESULT_KEY && ev.newValue) pollSession();
+      if (ev.key === AUTH_RESULT_KEY && ev.newValue) {
+        try {
+          const result = JSON.parse(ev.newValue);
+          if (result.status === "success" && result.state) {
+            sessionStorage.setItem(STATE_KEY, result.state);
+            finish(true);
+            return;
+          }
+        } catch (e) {}
+        pollSession();
+      }
     }
     window.addEventListener("storage", onStorage);
 

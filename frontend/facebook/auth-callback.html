@@ -62,7 +62,12 @@
         try {
           localStorage.setItem(
             RESULT_KEY,
-            JSON.stringify({ status: status, error: error, t: Date.now() })
+            JSON.stringify({
+              status: status,
+              error: error,
+              state: params.get("state") || "",
+              t: Date.now()
+            })
           );
         } catch (e) {}
 
@@ -85,6 +90,10 @@
           }, 600);
         } else {
           // Full-page flow (popup was blocked): continue in this tab.
+          var state = params.get("state");
+          if (state) {
+            try { sessionStorage.setItem("fb_login_state", state); } catch (e) {}
+          }
           window.location.replace(error ? "/" : "/facebook/dashboard.html");
         }
       })();
