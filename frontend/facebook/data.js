@@ -799,7 +799,11 @@
       const raw = await apiFetch("/api/accounts");
       const promises = raw.map(async (p) => {
         try {
-          return await apiFetch(`/api/page/posts?page_id=${p.page_id}`);
+          const posts = await apiFetch(`/api/page/posts?page_id=${p.page_id}`);
+          return (posts || []).map((post) => ({
+            ...post,
+            page_name: p.page_name
+          }));
         } catch (err) {
           console.error("Failed to fetch page posts for " + p.page_id, err);
           return [];
@@ -848,7 +852,7 @@
           ? Math.floor(new Date(p.created_time).getTime() / 1000)
           : (Date.now() / 1000);
         items.push({
-          name: "Page Post",
+          name: p.page_name || "Page Post",
           avatar: "/assets/logo-square.png",
           activity: "Published: " + String(p.message || "Photo/Video Post").slice(0, 80),
           ts: timeInSeconds,

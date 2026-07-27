@@ -111,19 +111,23 @@
         ].forEach((metric) => metricGrid.appendChild(FBUi.metricCard(metric)));
 
         const platformsEl = document.getElementById("platforms");
-        (session.pages || []).filter(p => p.platform === "instagram" || p.instagram_business_account).forEach((page) => {
+        const accounts = await FBData.getAccounts();
+        accounts.forEach((acct) => {
           const row = document.createElement("div");
-          const instagram = true;
+          const isInstagram = acct.platform === "instagram";
           row.className = "rounded-2xl border border-outline-variant/20 bg-surface-container-low px-4 py-4";
           row.innerHTML =
             '<div class="flex items-center justify-between gap-3">' +
               '<div class="flex items-center gap-3">' +
-                '<div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-yellow-400 via-rose-500 to-violet-600 text-white">' +
-                  '<span class="material-symbols-outlined">photo_camera</span>' +
+                '<div class="flex h-12 w-12 items-center justify-center rounded-2xl ' + 
+                  (isInstagram 
+                    ? 'bg-gradient-to-br from-yellow-400 via-rose-500 to-violet-600 text-white' 
+                    : 'bg-[#1877f2] text-white') + '">' +
+                  '<span class="material-symbols-outlined">' + (isInstagram ? 'photo_camera' : 'thumb_up') + '</span>' +
                 '</div>' +
                 '<div>' +
-                  '<p class="font-semibold text-on-surface">' + page.name + '</p>' +
-                  '<p class="text-sm text-on-surface-variant">@' + (page.username || "") + '</p>' +
+                  '<p class="font-semibold text-on-surface">' + acct.name + '</p>' +
+                  '<p class="text-sm text-on-surface-variant">' + (isInstagram && acct.username ? '@' + acct.username : 'Facebook Page') + '</p>' +
                 '</div>' +
               '</div>' +
               '<span class="rounded-full bg-white px-3 py-1 text-xs font-bold text-primary">Connected</span>' +
