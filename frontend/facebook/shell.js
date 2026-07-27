@@ -435,11 +435,26 @@
       }
     }
 
-    // Source of truth: poll OUR backend session. Once the OAuth callback creates
-    // it, /api/me?state= returns 200. Independent of popup-vs-tab, of
-    // window.opener (severed by Facebook's COOP), and of cross-tab messaging.
+    // Check for login completion by reading the secure token from either
+    // localStorage (written by callback page) or the popup's URL (if redirected).
+    // Bypasses polling the API with the temporary UUID to prevent race conditions on serverless.
     async function pollSession() {
       if (done) return;
+      
+      // 1. Check if auth-callback.html wrote the result to localStorage
+      try {
+        const localResult = localStorage.getItem(AUTH_RESULT_KEY);
+        if (localResult) {
+          const result = JSON.parse(localResult);
+          if (result.status === "success" && result.state) {
+            sessionStorage.setItem(STATE_KEY, result.state);
+            finish(true);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // 2. Check if the popup has redirected to our origin and has the state token in the URL
       try {
         if (popup && !popup.closed) {
           const popupUrl = new URL(popup.location.href);
@@ -454,14 +469,6 @@
         }
       } catch (e) {
         // cross-origin security block (popup is still on Meta page)
-      }
-
-      try {
-        const res = await fetch(apiUrl("me"));
-        if (res.ok) finish(true);
-        // 401 → session not created yet; keep waiting.
-      } catch (e) {
-        // transient/CORS blip mid-OAuth — keep waiting.
       }
     }
 
